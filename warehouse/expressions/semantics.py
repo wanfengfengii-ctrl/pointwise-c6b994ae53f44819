@@ -91,4 +91,5 @@ def evaluate_expression(expr, environment, context, demand_coordinate=None):
             return add_values(*args)
         raise TypeMismatch(f'unknown compiled operation: {expr.op}')
     except EvaluationError as error:
-        raise attach_first_location(error, ErrorLocation(expr.location, demand))
+        raise attach_first_location(error, ErrorLocation(
+            expr.location, demand), environment.coordinate)

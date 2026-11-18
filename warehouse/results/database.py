@@ -45,6 +45,13 @@ class Database:
         CREATE TABLE IF NOT EXISTS results(
             run_id TEXT NOT NULL REFERENCES runs(run_id), output_index INTEGER NOT NULL,
             coordinate TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(run_id,output_index));
+        CREATE TABLE IF NOT EXISTS isolated_runs(
+            run_id TEXT PRIMARY KEY REFERENCES runs(run_id));
+        CREATE TABLE IF NOT EXISTS rejections(
+            run_id TEXT NOT NULL REFERENCES runs(run_id),
+            rejection_index INTEGER NOT NULL CHECK(rejection_index>=0),
+            owner TEXT NOT NULL, error TEXT NOT NULL,
+            PRIMARY KEY(run_id, rejection_index));
         PRAGMA user_version = 1;
         COMMIT;
         """)

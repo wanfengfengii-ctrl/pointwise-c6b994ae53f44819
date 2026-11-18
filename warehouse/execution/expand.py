@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from warehouse.execution.environments import EMPTY_SIDE
 from warehouse.expressions.semantics import evaluate_expression
-from warehouse.expressions.errors import TypeMismatch, ErrorLocation
+from warehouse.expressions.errors import (
+    TypeMismatch, ErrorLocation, attach_first_location)
 
 
 @dataclass(frozen=True)
@@ -24,7 +25,9 @@ def iter_array_occurrences(value, mode):
 def expand_scope(expand, parent, context):
     value = evaluate_expression(expand.expr, parent, context)
     if type(value) is not list:
-        raise TypeMismatch('expand requires array',
-                           ErrorLocation(expand.expr.location, parent.coordinate))
+        raise attach_first_location(
+            TypeMismatch('expand requires array'),
+            ErrorLocation(expand.expr.location, parent.coordinate),
+            parent.coordinate)
     for occurrence in iter_array_occurrences(value, expand.mode):
         yield parent.child(expand.scope, expand.alias, occurrence.element, occurrence.index)

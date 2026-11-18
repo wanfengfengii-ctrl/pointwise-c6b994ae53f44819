@@ -97,6 +97,33 @@ s1, ... follow declaration order. Output indices start at zero and are
 contiguous. Two equal sources each with two elements produce root-bound
 tickets 1,1,2,2 when each leaf demands the same root binding.
 
+## Quality isolation for fixed batches
+
+ISOLATION.md defines the isolated mode. run_isolated(batch_id, plan_revision,
+function_context=None) takes the same fixed identities as run but returns a
+RunReceipt whose row_count counts only surviving details.
+read_isolated_result(run_id) returns run_id, batch_id, plan_revision,
+row_count, rows (ordered OutputRow tuple, contiguous from zero) and
+rejections (discovery-ordered {"owner", "error"} pairs). Only
+FunctionFailure, MissingField and TypeMismatch are quality rejections; each is
+owned by the occurrence that owns the actually failing expression, keeping the
+original expression, owning occurrence and first-demand coordinate across
+binding references. Details already produced inside the owned occurrence are
+withdrawn, its remaining descendants are skipped, and unrelated occurrences
+continue in the original depth-first order. Issued tickets and other function
+effects are kept; survivors are renumbered from the buffer, never
+re-evaluated. Later ancestor rejections never erase already recorded child
+rejections. read_result and read_isolated_result are mutually exclusive per
+run; non-quality errors keep the whole-run failure boundary.
+
+Handover: execution adjudicates two datasets in memory — surviving candidate
+details after withdrawals, and the rejection list — and hands both to the
+single work transaction. Publication stages the survivors, records the
+isolated marker and the rejections, and marks the run SUCCEEDED atomically,
+so after close/reopen a run_id either exposes both datasets through
+read_isolated_result or none at all. See isolation_examples.py (baseline,
+verify, demo) for the joint accounting against hand-computed expectations.
+
 ## Errors, runs and historical results
 
 EvaluationError subclasses: FunctionFailure, TypeMismatch, MissingField,
@@ -134,9 +161,10 @@ warehouse/source/ owns validation, snapshots, receipts, stored records and
 coordinates. warehouse/expressions/ owns syntax, validation, strict semantics,
 errors and deterministic functions. warehouse/planning/ owns lexical
 resolution, compilation and immutable revisions. warehouse/execution/ owns
-occurrence environments, demand cells, expansion and ordered projection.
-warehouse/results/ owns SQLite lifecycle, run transitions, staging and atomic
-publication. warehouse/api.py composes the services.
+occurrence environments, demand cells, expansion, ordered projection and the
+quality-isolated traversal. warehouse/results/ owns SQLite lifecycle, run
+transitions, staging, rejection storage and atomic publication.
+warehouse/api.py composes the services.
 
 tests/test_source.py: identity, replay, invalid middle records, snapshot,
 rollback and reopen. tests/test_planning.py: lexical visibility, shadowing,

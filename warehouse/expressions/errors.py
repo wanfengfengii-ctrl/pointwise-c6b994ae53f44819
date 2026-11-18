@@ -19,6 +19,7 @@ class EvaluationError(Exception):
     def __init__(self, message, location=None):
         super().__init__(message)
         self.location = location
+        self.owner = None
         self.run_id = None
 
     def to_data(self):
@@ -43,7 +44,9 @@ class BindingCycleError(EvaluationError):
     code = 'BINDING_CYCLE'
 
 
-def attach_first_location(error, location):
+def attach_first_location(error, location, owner=None):
     if error.location is None:
         error.location = location
+    if owner is not None and error.owner is None:
+        error.owner = owner
     return error

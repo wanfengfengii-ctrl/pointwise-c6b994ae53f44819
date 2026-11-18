@@ -29,7 +29,8 @@ class ExecutionRunner:
                 selected = require_boolean(evaluate_expression(scope.where, environment, context))
             except EvaluationError as error:
                 raise attach_first_location(error, ErrorLocation(
-                    scope.where.location, environment.coordinate))
+                    scope.where.location, environment.coordinate),
+                    environment.coordinate)
             if not selected:
                 return
         lineage = ancestors + (environment,)
